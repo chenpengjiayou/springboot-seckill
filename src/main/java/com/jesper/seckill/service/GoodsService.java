@@ -51,7 +51,7 @@ public class GoodsService {
         SeckillGoods sg = new SeckillGoods();
         sg.setGoodsId(goods.getId());
         sg.setVersion(goods.getVersion());
-        do {
+        /*do {
             numAttempts++;
             try {
                 sg.setVersion(goodsMapper.getVersionByGoodsId(goods.getId()));
@@ -61,8 +61,8 @@ public class GoodsService {
             }
             if (ret != 0)
                 break;
-        } while (numAttempts < DEFAULT_MAX_RETRIES);
-
+        } while (numAttempts < DEFAULT_MAX_RETRIES);*/
+        ret = goodsMapper.reduceStockByVersion(sg);
         return ret > 0;
     }
 }

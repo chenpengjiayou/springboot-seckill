@@ -22,7 +22,7 @@ public interface GoodsMapper {
     public GoodsVo getGoodsVoByGoodsId(@Param("goodsId") long goodsId);
 
     //stock_count > 0 和 版本号实现乐观锁 防止超卖
-    @Update("update sk_goods_seckill set stock_count = stock_count - 1, version= version + 1 where goods_id = #{goodsId} and stock_count > 0 and version = #{version}")
+    @Update("update sk_goods_seckill set stock_count = stock_count - 1, version= version + 1 where goods_id = #{goodsId} and stock_count > 0 ")
     public int reduceStockByVersion(SeckillGoods seckillGoods);
 
     // 获取最新版本号

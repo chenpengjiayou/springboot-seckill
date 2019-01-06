@@ -94,15 +94,15 @@ public class SeckillController implements InitializingBean {
             }
         }
         //判断重复秒杀
-        SeckillOrder order = orderService.getOrderByUserIdGoodsId(user.getId(), goodsId);
+        /*SeckillOrder order = orderService.getOrderByUserIdGoodsId(user.getId(), goodsId);
         if (order != null) {
             return Result.error(CodeMsg.REPEATE_SECKILL);
-        }
+        }*/
         //入队
-        SeckillMessage message = new SeckillMessage();
+        /*SeckillMessage message = new SeckillMessage();
         message.setUser(user);
         message.setGoodsId(goodsId);
-        sender.sendSeckillMessage(message);
+        sender.sendSeckillMessage(message);*/
         return Result.success(0);//排队中
     }
 
