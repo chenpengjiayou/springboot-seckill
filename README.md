@@ -2,7 +2,7 @@
 本项目是从别的项目修改过来的，可能会有一些和本demo无关的代码，请自动忽略  
 秒杀页面：  
 http://localhost:8080/goods_detail.htm  
-充值商品库存页面，默认初始60个库存，其中30个站点库存，30个总仓库存  
+重置商品库存页面，默认初始60个库存，其中30个站点库存，30个总仓库存。秒杀前请先调用该页面初始化库存。
 http://localhost:8080/seckill/prepare  
 查看秒杀记录：  
 http://localhost:8080/seckill/seckill_all_result?goodsId=1  
