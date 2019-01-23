@@ -4,8 +4,6 @@ import com.jesper.seckill.redis.RedisService;
 import com.jesper.seckill.redis.RedissonManager;
 import com.jesper.seckill.redis.SeckillKey;
 import com.jesper.seckill.redis.dto.SeckillStockDetail;
-import com.jesper.seckill.service.GoodsService;
-import com.jesper.seckill.service.OrderService;
 import com.jesper.seckill.service.SeckillService;
 import com.jesper.seckill.util.RedisKeyUtil;
 import org.redisson.api.RLock;
@@ -18,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,11 +30,6 @@ public class MQReceiver {
     @Autowired
     RedisService redisService;
 
-    @Autowired
-    GoodsService goodsService;
-
-    @Autowired
-    OrderService orderService;
 
     @Autowired
     SeckillService seckillService;

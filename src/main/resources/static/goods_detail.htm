@@ -78,7 +78,7 @@
                         layer.msg("对不起，秒杀失败");
                     }else if(result == 0){//继续轮询
                         setTimeout(function(){
-                            getSeckillResult(goodsId);
+                            getSeckillResult(goodsId,uuid);
                         }, 50);
                     }else{
                         layer.msg("恭喜你，秒杀成功！");

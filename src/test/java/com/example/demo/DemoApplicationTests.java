@@ -2,11 +2,8 @@ package com.example.demo;
 
 import com.jesper.seckill.MainApplication;
 import com.jesper.seckill.controller.SeckillController;
-import com.jesper.seckill.service.GoodsService;
 import com.jesper.seckill.service.SeckillService;
-import com.jesper.seckill.vo.GoodsVo;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +18,6 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = MainApplication.class)
 public class DemoApplicationTests {
-	@Autowired
-	GoodsService goodsService;
 	@Autowired
 	SeckillService seckillService;
 	/**
@@ -49,14 +44,13 @@ public class DemoApplicationTests {
 
 	@Before
 	public void setUp() throws Exception {
-		seckillService.prepare(SeckillController.fieldId,SeckillController.siteNo);
+		seckillService.prepare(SeckillController.fieldId,SeckillController.goodsId.toString(),SeckillController.siteNo);
 	}
 
 	@Test
 	public void contextLoads() throws InterruptedException {
-		GoodsVo goodsVo = goodsService.getGoodsVoByGoodsId(1L);
 		for (int i = 0; i < threadNum; i++) {
-			new Thread(new UserRequest(goodsVo, 1, i)).start();
+			new Thread(new UserRequest(SeckillController.goodsId, 1, i)).start();
 		}
 		System.out.println("before startCountDownLatch contdown");
 		startCountDownLatch.countDown();
@@ -74,12 +68,12 @@ public class DemoApplicationTests {
 
 	private class UserRequest implements Runnable {
 
-		private GoodsVo goodsVo;
+		private Long goodsId;
 		private int buyCount;
 		private long userId;
 
-		public UserRequest(GoodsVo goodsVo, int buyCount, long userId) {
-			this.goodsVo = goodsVo;
+		public UserRequest(long goodsId, int buyCount, long userId) {
+			this.goodsId = goodsId;
 			this.buyCount = buyCount;
 			this.userId = userId;
 		}
@@ -93,9 +87,9 @@ public class DemoApplicationTests {
 			}
 			//如果更新数据库成功，也就代表购买成功了
 			String uuid = UUID.randomUUID().toString();
-			if (seckillService.seckill(SeckillController.fieldId,goodsVo.getId(),SeckillController.siteNo,userId,uuid)) {
+			if (seckillService.seckill(SeckillController.fieldId,goodsId,SeckillController.siteNo,userId,uuid)) {
 				//对service加锁，因为很多线程在访问同一个service对象，不加锁将导致购买成功的人数少于预期，且数量不对，可自行测试
-				synchronized (goodsService) {
+				synchronized (UserRequest.class) {
 					//销售量
 					goodSale += buyCount;
 					accountNum++;

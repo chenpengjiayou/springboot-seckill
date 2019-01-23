@@ -5,14 +5,10 @@ import com.jesper.seckill.bean.User;
 import com.jesper.seckill.rabbitmq.SeckillMessage;
 import com.jesper.seckill.redis.RedisService;
 import com.jesper.seckill.redis.SeckillKey;
-import com.jesper.seckill.redis.dto.SeckillStockDetail;
 import com.jesper.seckill.result.CodeMsg;
 import com.jesper.seckill.result.Result;
-import com.jesper.seckill.service.GoodsService;
-import com.jesper.seckill.service.OrderService;
 import com.jesper.seckill.service.SeckillService;
 import com.jesper.seckill.util.RedisKeyUtil;
-import com.jesper.seckill.vo.GoodsVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -34,12 +30,6 @@ import java.util.concurrent.TimeUnit;
 public class SeckillController  {
 
     @Autowired
-    GoodsService goodsService;
-
-    @Autowired
-    OrderService orderService;
-
-    @Autowired
     SeckillService seckillService;
 
     @Autowired
@@ -49,7 +39,7 @@ public class SeckillController  {
 
     public final static String siteNo = "ZTD000001";
     public final static String fieldId = "1";
-
+    public final static Long goodsId = 1L;
     //基于令牌桶算法的限流实现类
     RateLimiter rateLimiter = RateLimiter.create(500);
 
@@ -59,7 +49,7 @@ public class SeckillController  {
     @ResponseBody
     public Result<Integer> prepare() {
         localOverMap.clear();
-        seckillService.prepare(fieldId,siteNo);
+        seckillService.prepare(fieldId,goodsId.toString(),siteNo);
         return Result.success(0);
     }
 

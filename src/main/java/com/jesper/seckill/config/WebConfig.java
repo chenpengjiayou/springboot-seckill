@@ -19,17 +19,7 @@ import java.util.List;
 @Configuration
 public class WebConfig extends WebMvcConfigurerAdapter{
 
-    @Autowired
-    UserArgumentResolver userArgumentResolver;
 
-    /**
-     * SpringMVC框架回调addArgumentResolvers，然后给Controller的参数赋值
-     * @param argumentResolvers
-     */
-    @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> argumentResolvers) {
-        argumentResolvers.add(userArgumentResolver);
-    }
     @RequestMapping("/")
     public String index() {
         return "/goods/to_list";
