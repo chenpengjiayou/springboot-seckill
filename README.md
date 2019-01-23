@@ -1,1 +1,1 @@
-秒杀小demo
+秒杀小demo,请先安装rabitmq和redis。为方便演示，没使用mysql，商品数据写死在代码里面的。
