@@ -62,13 +62,14 @@
 </div>
 </body>
 <script>
-    function getSeckillResult(goodsId){
+    function getSeckillResult(goodsId,uuid){
         g_showLoading();
         $.ajax({
             url:"/seckill/result",
             type:"GET",
             data:{
                 goodsId:$("#goodsId").val(),
+                uuid:uuid
             },
             success:function(data){
                 if(data.code == 0){
@@ -80,13 +81,7 @@
                             getSeckillResult(goodsId);
                         }, 50);
                     }else{
-                        layer.confirm("恭喜你，秒杀成功！查看订单？", {btn:["确定","取消"]},
-                            function(){
-                                window.location.href="/order_detail.htm?orderId="+result;
-                            },
-                            function(){
-                                layer.closeAll();
-                            });
+                        layer.msg("恭喜你，秒杀成功！");
                     }
                 }else{
                     layer.msg(data.msg);
@@ -107,7 +102,7 @@
             success: function (data) {
                 if (data.code == 0) {
 //                    window.location.href = "/order_detail.htm?orderId=" + data.data.id;
-                    getSeckillResult($("#goodsId").val());
+                    getSeckillResult($("#goodsId").val(),data.msg);
                 } else {
                     layer.msg(data.msg);
                 }
@@ -142,9 +137,8 @@
     });
 
     function getDetail() {
-        var goodsId = g_getQueryString("goodsId");
         $.ajax({
-            url: "/goods/detail/" + goodsId,
+            url: "/goods/detail/",
             type: "GET",
             success: function (data) {
                 if (data.code == 0) {

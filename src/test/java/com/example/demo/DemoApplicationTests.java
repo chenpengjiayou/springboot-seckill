@@ -1,8 +1,12 @@
 package com.example.demo;
 
 import com.jesper.seckill.MainApplication;
+import com.jesper.seckill.controller.SeckillController;
 import com.jesper.seckill.service.GoodsService;
+import com.jesper.seckill.service.SeckillService;
 import com.jesper.seckill.vo.GoodsVo;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +15,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(SpringRunner.class)
@@ -18,52 +23,62 @@ import java.util.concurrent.CountDownLatch;
 public class DemoApplicationTests {
 	@Autowired
 	GoodsService goodsService;
-	private int goodAmount = 50;
+	@Autowired
+	SeckillService seckillService;
 	/**
 	 * 并发量
 	 */
-	private int threadNum = 1;
+	private int threadNum = 1800;
 
 	//销售量
+
 	private int goodSale = 0;
 
 	//买成功的数量
 	private int accountNum = 0;
 	//买成功的人的ID集合
-	private List<Integer> successUsers = new ArrayList<>();
+	private List<Long> successUsers = new ArrayList<>();
 
 
 	/*当创建 CountDownLatch 对象时，对象使用构造函数的参数来初始化内部计数器。每次调用 countDown() 方法,
      CountDownLatch 对象内部计数器减一。当内部计数器达到0时， CountDownLatch 对象唤醒全部使用 await() 方法睡眠的线程们。*/
-	private CountDownLatch countDownLatch = new CountDownLatch(threadNum);
+	private CountDownLatch startCountDownLatch = new CountDownLatch(1);
+	private CountDownLatch endDownLatch=new CountDownLatch(threadNum);
+
+
+
+	@Before
+	public void setUp() throws Exception {
+		seckillService.prepare(SeckillController.fieldId,SeckillController.siteNo);
+	}
 
 	@Test
-	public void contextLoads() {
-		GoodsVo goodsVo = goodsService.getGoodsVoByGoodsId(2L);
+	public void contextLoads() throws InterruptedException {
+		GoodsVo goodsVo = goodsService.getGoodsVoByGoodsId(1L);
 		for (int i = 0; i < threadNum; i++) {
 			new Thread(new UserRequest(goodsVo, 1, i)).start();
-//			countDownLatch.countDown();
 		}
+		System.out.println("before startCountDownLatch contdown");
+		startCountDownLatch.countDown();
+		System.out.println("end startCountDownLatch contdown");
+		endDownLatch.await();
 
-		//让主线程等待200个线程执行完，休息2秒，不休息的话200条线程还没执行完，就打印了
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		System.out.println("end endDownLatch ");
 		System.out.println("-----------购买成功的用户数量----------为" + accountNum);
 		System.out.println("-----------销售量--------------------为" + goodSale);
-		System.out.println("-----------剩余数量------------------为" + (goodAmount - goodSale));
+
 		System.out.println(successUsers);
+		//等待消息队列执行完成
+		Thread.sleep(5000);
 	}
 
 	private class UserRequest implements Runnable {
 
 		private GoodsVo goodsVo;
 		private int buyCount;
-		private int userId;
+		private long userId;
 
-		public UserRequest(GoodsVo goodsVo, int buyCount, int userId) {
+		public UserRequest(GoodsVo goodsVo, int buyCount, long userId) {
 			this.goodsVo = goodsVo;
 			this.buyCount = buyCount;
 			this.userId = userId;
@@ -71,15 +86,14 @@ public class DemoApplicationTests {
 
 		@Override
 		public void run() {
-			/*try {
-				//让线程等待，等200个线程创建完一起执行
-				countDownLatch.await();
+			try {
+				startCountDownLatch.await();
 			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}*/
-
+				Thread.currentThread().interrupt();
+			}
 			//如果更新数据库成功，也就代表购买成功了
-			if (goodsService.reduceStock(goodsVo)) {
+			String uuid = UUID.randomUUID().toString();
+			if (seckillService.seckill(SeckillController.fieldId,goodsVo.getId(),SeckillController.siteNo,userId,uuid)) {
 				//对service加锁，因为很多线程在访问同一个service对象，不加锁将导致购买成功的人数少于预期，且数量不对，可自行测试
 				synchronized (goodsService) {
 					//销售量
@@ -89,6 +103,7 @@ public class DemoApplicationTests {
 					successUsers.add(userId);
 				}
 			}
+			endDownLatch.countDown();
 		}
 	}
 

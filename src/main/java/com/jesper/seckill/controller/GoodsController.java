@@ -1,6 +1,7 @@
 package com.jesper.seckill.controller;
 
 import com.alibaba.druid.util.StringUtils;
+import com.alibaba.fastjson.JSON;
 import com.jesper.seckill.bean.User;
 import com.jesper.seckill.redis.GoodsKey;
 import com.jesper.seckill.redis.RedisService;
@@ -127,36 +128,19 @@ public class GoodsController {
     /**
      * 商品详情页面
      */
-    @RequestMapping(value = "/detail/{goodsId}")
+    @RequestMapping(value = "/detail/")
     @ResponseBody
-    public Result<GoodsDetailVo> detail(HttpServletRequest request, HttpServletResponse response, Model model, User user, @PathVariable("goodsId") long goodsId) {
+    public Result<GoodsDetailVo> detail(HttpServletRequest request, HttpServletResponse response, Model model) {
 
-        //根据id查询商品详情
-        GoodsVo goods = goodsService.getGoodsVoByGoodsId(goodsId);
+        String s = "{\"endDate\":1526984580000,\"goodsDetail\":\"Apple/苹果iPhone X 全网通4G手机苹果X 10\",\"goodsImg\":\"/img/iphonex.png\",\"goodsName\":\"iphoneX\",\"goodsPrice\":7788.0,\"goodsStock\":100,\"goodsTitle\":\"Apple/苹果iPhone X 全网通4G手机苹果X 10\",\"id\":1,\"seckillPrice\":0.01,\"startDate\":1526980972000,\"stockCount\":5999,\"version\":5}";
+        System.out.println(s);
+        GoodsVo goods = JSON.toJavaObject(JSON.parseObject(s), GoodsVo.class);
         model.addAttribute("goods", goods);
 
-        long startTime = goods.getStartDate().getTime();
-        long endTime = goods.getEndDate().getTime();
-        long now = System.currentTimeMillis();
 
-        int seckillStatus = 0;
-        int remainSeconds = 0;
 
-        if (now < startTime) {//秒杀还没开始，倒计时
-            seckillStatus = 0;
-            remainSeconds = (int) ((startTime - now) / 1000);
-        } else if (now > endTime) {//秒杀已经结束
-            seckillStatus = 2;
-            remainSeconds = -1;
-        } else {//秒杀进行中
-            seckillStatus = 1;
-            remainSeconds = 0;
-        }
         GoodsDetailVo vo = new GoodsDetailVo();
         vo.setGoods(goods);
-        vo.setUser(user);
-        vo.setRemainSeconds(remainSeconds);
-        vo.setSeckillStatus(seckillStatus);
 
         return Result.success(vo);
     }

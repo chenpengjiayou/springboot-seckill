@@ -46,12 +46,13 @@ public class GoodsService {
      * @return
      */
     public boolean reduceStock(GoodsVo goods) {
+        long begin = System.currentTimeMillis();
         int numAttempts = 0;
         int ret = 0;
         SeckillGoods sg = new SeckillGoods();
         sg.setGoodsId(goods.getId());
         sg.setVersion(goods.getVersion());
-        /*do {
+        do {
             numAttempts++;
             try {
                 sg.setVersion(goodsMapper.getVersionByGoodsId(goods.getId()));
@@ -61,8 +62,13 @@ public class GoodsService {
             }
             if (ret != 0)
                 break;
-        } while (numAttempts < DEFAULT_MAX_RETRIES);*/
-        ret = goodsMapper.reduceStockByVersion(sg);
+        } while (numAttempts < DEFAULT_MAX_RETRIES);
+        if(numAttempts>1) {
+            System.out.println("numAttempts=" + numAttempts+" ret="+ret);
+        }
+//        ret = goodsMapper.reduceStockByVersion(sg);
+        long end = System.currentTimeMillis();
+        System.out.println("cost time="+(end-begin));
         return ret > 0;
     }
 }

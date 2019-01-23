@@ -8,6 +8,8 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
+import java.util.List;
+
 /**
  * redis服务
  */
@@ -32,6 +34,23 @@ public class RedisService {
         } finally {
             returnToPool(jedis);
         }
+    }
+    public <T> List getJsonList(KeyPrefix prefix, String key, Class<T> clazz) {
+        Jedis jedis = null;
+        try {
+            jedis = jedisPool.getResource();
+            //对key增加前缀，即可用于分类，也避免key重复
+            String realKey = prefix.getPrefix() + key;
+            String str = jedis.get(realKey);
+            List<T> t = stringToList(str, clazz);
+            return t;
+        } finally {
+            returnToPool(jedis);
+        }
+    }
+
+    public <T> Boolean setJsonList(KeyPrefix prefix, String key, T value) {
+        return set(prefix,key,value);
 
     }
 
@@ -151,9 +170,18 @@ public class RedisService {
             return (T) Long.valueOf(str);
         } else if (clazz == String.class) {
             return (T) str;
-        } else {
+        } else{
             return JSON.toJavaObject(JSON.parseObject(str), clazz);
         }
+    }
+
+    public static <T> List<T> stringToList(String str, Class clazz) {
+        if (str == null || str.length() <= 0 || clazz == null) {
+            return null;
+        }
+
+        return JSON.parseArray(str,clazz);
+
     }
 
     private void returnToPool(Jedis jedis) {

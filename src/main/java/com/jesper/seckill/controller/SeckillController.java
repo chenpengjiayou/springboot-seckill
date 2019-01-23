@@ -1,19 +1,18 @@
 package com.jesper.seckill.controller;
 
 import com.google.common.util.concurrent.RateLimiter;
-import com.jesper.seckill.bean.SeckillOrder;
 import com.jesper.seckill.bean.User;
-import com.jesper.seckill.rabbitmq.MQSender;
 import com.jesper.seckill.rabbitmq.SeckillMessage;
-import com.jesper.seckill.redis.GoodsKey;
 import com.jesper.seckill.redis.RedisService;
+import com.jesper.seckill.redis.SeckillKey;
+import com.jesper.seckill.redis.dto.SeckillStockDetail;
 import com.jesper.seckill.result.CodeMsg;
 import com.jesper.seckill.result.Result;
 import com.jesper.seckill.service.GoodsService;
 import com.jesper.seckill.service.OrderService;
 import com.jesper.seckill.service.SeckillService;
+import com.jesper.seckill.util.RedisKeyUtil;
 import com.jesper.seckill.vo.GoodsVo;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -31,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Controller
 @RequestMapping("/seckill")
-public class SeckillController implements InitializingBean {
+public class SeckillController  {
 
     @Autowired
     GoodsService goodsService;
@@ -45,14 +45,26 @@ public class SeckillController implements InitializingBean {
     @Autowired
     RedisService redisService;
 
-    @Autowired
-    MQSender sender;
+
+
+    public final static String siteNo = "ZTD000001";
+    public final static String fieldId = "1";
 
     //基于令牌桶算法的限流实现类
-    RateLimiter rateLimiter = RateLimiter.create(10);
+    RateLimiter rateLimiter = RateLimiter.create(500);
 
     //做标记，判断该商品是否被处理过了
-    private HashMap<Long, Boolean> localOverMap = new HashMap<Long, Boolean>();
+    private HashMap<String, Boolean> localOverMap = new HashMap<String, Boolean>();
+    @RequestMapping(value = "/prepare", method = RequestMethod.GET)
+    @ResponseBody
+    public Result<Integer> prepare() {
+        localOverMap.clear();
+        seckillService.prepare(fieldId,siteNo);
+        return Result.success(0);
+    }
+
+
+
 
     /**
      * GET POST
@@ -78,49 +90,36 @@ public class SeckillController implements InitializingBean {
             return Result.error(CodeMsg.SESSION_ERROR);
         }
         model.addAttribute("user", user);
+
         //内存标记，减少redis访问
-        boolean over = localOverMap.get(goodsId);
-        if (over) {
+        String seckillKey = RedisKeyUtil.combineSeckillKey(fieldId,String.valueOf(goodsId),siteNo);
+        Boolean over = localOverMap.get(seckillKey);
+        if (over!=null && over) {
+            System.out.println("本地内存标记库存已售完");
             return Result.error(CodeMsg.SECKILL_OVER);
         }
-        //预减库存
-        long stock = redisService.decr(GoodsKey.getGoodsStock, "" + goodsId);//10
-        if (stock < 0) {
-            afterPropertiesSet();
-            long stock2 = redisService.decr(GoodsKey.getGoodsStock, "" + goodsId);//10
-            if(stock2 < 0){
-                localOverMap.put(goodsId, true);
-                return Result.error(CodeMsg.SECKILL_OVER);
-            }
+        String uuid = UUID.randomUUID().toString();
+        if(seckillService.seckill(fieldId,goodsId,siteNo,user.getId(),uuid)) {
+            Result success = Result.success(0);
+            success.setMsg(uuid);
+            return success;
+        } else {
+            localOverMap.put(seckillKey, true);
+            return Result.error(CodeMsg.SECKILL_OVER);
         }
-        //判断重复秒杀
-        /*SeckillOrder order = orderService.getOrderByUserIdGoodsId(user.getId(), goodsId);
-        if (order != null) {
-            return Result.error(CodeMsg.REPEATE_SECKILL);
-        }*/
-        //入队
-        /*SeckillMessage message = new SeckillMessage();
-        message.setUser(user);
-        message.setGoodsId(goodsId);
-        sender.sendSeckillMessage(message);*/
-        return Result.success(0);//排队中
+
+
     }
 
-    /**
-     * 系统初始化,将商品信息加载到redis和本地内存
-     */
-    @Override
-    public void afterPropertiesSet() {
-        List<GoodsVo> goodsVoList = goodsService.listGoodsVo();
-        if (goodsVoList == null) {
-            return;
-        }
-        for (GoodsVo goods : goodsVoList) {
-            redisService.set(GoodsKey.getGoodsStock, "" + goods.getId(), goods.getStockCount());
-            //初始化商品都是没有处理过的
-            localOverMap.put(goods.getId(), false);
-        }
+
+    @RequestMapping(value = "/seckill_all_result", method = RequestMethod.GET)
+    @ResponseBody
+    public Result<List<SeckillMessage>> list(@RequestParam("goodsId") long goodsId) {
+        String seckillKey = RedisKeyUtil.combineSeckillKey(fieldId,String.valueOf(goodsId),siteNo);
+        List<SeckillMessage> record = redisService.getJsonList(SeckillKey.seckillRecord,seckillKey, SeckillMessage.class);
+        return Result.success(record);//排队中
     }
+
 
     /**
      * orderId：成功
@@ -129,13 +128,21 @@ public class SeckillController implements InitializingBean {
      */
     @RequestMapping(value = "/result", method = RequestMethod.GET)
     @ResponseBody
-    public Result<Long> seckillResult(Model model, User user,
-                                      @RequestParam("goodsId") long goodsId) {
-        model.addAttribute("user", user);
-        if (user == null) {
-            return Result.error(CodeMsg.SESSION_ERROR);
+    public Result<Integer> seckillResult(Model model,
+                                        @RequestParam("goodsId") String goodsId, @RequestParam("uuid") String uuid) {
+        String seckillKey = RedisKeyUtil.combineSeckillKey(fieldId, String.valueOf(goodsId), siteNo);
+        List<SeckillMessage> record = redisService.getJsonList(SeckillKey.seckillRecord, seckillKey, SeckillMessage.class);
+        if(record==null) {
+            return Result.error(CodeMsg.ORDER_NOT_EXIST);
         }
-        long orderId = seckillService.getSeckillResult(user.getId(), goodsId);
-        return Result.success(orderId);
+        for (SeckillMessage seckillMessage : record) {
+            if (uuid.equals(seckillMessage.getId())) {
+                return Result.success(200);
+            }
+        }
+
+        return Result.success(0);
+
     }
+
 }
