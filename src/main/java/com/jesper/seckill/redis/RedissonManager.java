@@ -35,9 +35,15 @@ public class RedissonManager implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
+        StringBuffer sb = new StringBuffer();
+        sb.append("redis://");
+        sb.append(redisConfig.getHost());
+        sb.append(":");
+        sb.append(redisConfig.getPort());
+
         try {
             config.useSingleServer()
-                    .setAddress("redis://127.0.0.1:6380")
+                    .setAddress(sb.toString())
                     .setPassword(redisConfig.getPassword()).setConnectionPoolSize(500)//设置对于master节点的连接池中连接数最大为500
                     .setIdleConnectionTimeout(10000)//如果当前连接池里的连接数量超过了最小空闲连接数，而同时有连接空闲时间超过了该数值，那么这些连接将会自动被关闭，并从连接池里去掉。时间单位是毫秒。
                     .setConnectTimeout(30000)//同任何节点建立连接时的等待超时。时间单位是毫秒。

@@ -77,8 +77,9 @@ public class SeckillController  {
         }
 
         if (user == null) {
-            return Result.error(CodeMsg.SESSION_ERROR);
+            user = new User();
         }
+        user.setId(1L);
         model.addAttribute("user", user);
 
         //内存标记，减少redis访问
@@ -123,7 +124,7 @@ public class SeckillController  {
         String seckillKey = RedisKeyUtil.combineSeckillKey(fieldId, String.valueOf(goodsId), siteNo);
         List<SeckillMessage> record = redisService.getJsonList(SeckillKey.seckillRecord, seckillKey, SeckillMessage.class);
         if(record==null) {
-            return Result.error(CodeMsg.ORDER_NOT_EXIST);
+            return Result.success(0);
         }
         for (SeckillMessage seckillMessage : record) {
             if (uuid.equals(seckillMessage.getId())) {
