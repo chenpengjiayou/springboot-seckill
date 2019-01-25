@@ -1,5 +1,6 @@
 package com.jesper.seckill.rabbitmq;
 
+import com.jesper.seckill.activemq.ActiveMqName;
 import com.jesper.seckill.redis.RedisService;
 import com.jesper.seckill.redis.RedissonManager;
 import com.jesper.seckill.redis.SeckillKey;
@@ -10,8 +11,8 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -34,7 +35,7 @@ public class MQReceiver {
     @Autowired
     SeckillService seckillService;
 
-    @RabbitListener(queues=MQConfig.QUEUE)
+    @JmsListener(destination =  ActiveMqName.QUEUE_ONE, containerFactory = "jmsListenerContainerQueue")
     public void receive(String message){
         SeckillMessage seckillMessage = RedisService.stringToBean(message, SeckillMessage.class);
         String seckillKey = RedisKeyUtil.combineSeckillKey(seckillMessage.getFieldId(),String.valueOf(seckillMessage.getGoodsId()),seckillMessage.getSiteNo());
@@ -73,15 +74,5 @@ public class MQReceiver {
             rLock.unlock();
         }
 
-    }
-
-    @RabbitListener(queues = MQConfig.TOPIC_QUEUE1)
-    public void receiveTopic1(String message) {
-        log.info(" topic  queue1 message:" + message);
-    }
-
-    @RabbitListener(queues = MQConfig.TOPIC_QUEUE2)
-    public void receiveTopic2(String message) {
-        log.info(" topic  queue2 message:" + message);
     }
 }

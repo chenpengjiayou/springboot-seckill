@@ -23,7 +23,7 @@ public class DemoApplicationTests {
 	/**
 	 * 并发量
 	 */
-	private int threadNum = 1800;
+	private int threadNum = 500;
 
 	//销售量
 
