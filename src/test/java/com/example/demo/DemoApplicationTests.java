@@ -101,6 +101,13 @@ public class DemoApplicationTests {
 		}
 	}
 
-
+	@Test
+	public void testWatch() {
+		try {
+			seckillService.seckillWatch();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }
 
