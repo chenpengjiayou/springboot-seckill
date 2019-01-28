@@ -8,7 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Created by jiangyunxiong on 2018/5/31.
+ *
  */
 public class RateLimiterDemo {
     public static void main(String[] args) {

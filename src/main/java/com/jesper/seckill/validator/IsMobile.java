@@ -5,7 +5,7 @@ import javax.validation.Payload;
 import java.lang.annotation.*;
 
 /**
- * Created by jiangyunxiong on 2018/5/22.
+ *
  * <p>
  * 自定义手机格式校验注解
  */

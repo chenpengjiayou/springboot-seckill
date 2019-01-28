@@ -3,7 +3,7 @@ package com.jesper.seckill.vo;
 import com.jesper.seckill.bean.User;
 
 /**
- * Created by jiangyunxiong on 2018/5/24.
+ *
  */
 public class GoodsDetailVo {
     private int seckillStatus = 0;

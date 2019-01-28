@@ -19,8 +19,12 @@ public class ActiveMqTest {
     private QueueSender queueSender;
     @Test
     public void testSend(){
-        for(int i=0;i<1000;i++) {
-            queueSender.send(ActiveMqName.QUEUE_ONE, "success");
+        for(int i=0;i<2;i++) {
+            if(i==0) {
+                queueSender.send(ActiveMqName.QUEUE_ONE, "success1",10000);
+            } else {
+                queueSender.send(ActiveMqName.QUEUE_ONE, "success2",5000);
+            }
         }
     }
 }

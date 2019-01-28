@@ -2,7 +2,7 @@ package com.jesper.seckill.controller;
 
 import com.google.common.util.concurrent.RateLimiter;
 import com.jesper.seckill.bean.User;
-import com.jesper.seckill.rabbitmq.SeckillMessage;
+import com.jesper.seckill.activemq.SeckillMessage;
 import com.jesper.seckill.redis.RedisService;
 import com.jesper.seckill.redis.SeckillKey;
 import com.jesper.seckill.result.CodeMsg;
@@ -23,7 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by jiangyunxiong on 2018/5/22.
+ *
  */
 @Controller
 @RequestMapping("/seckill")
@@ -90,7 +90,7 @@ public class SeckillController  {
             return Result.error(CodeMsg.SECKILL_OVER);
         }
         String uuid = UUID.randomUUID().toString();
-        if(seckillService.seckill(fieldId,goodsId,siteNo,user.getId(),uuid)) {
+        if(seckillService.seckill(fieldId,goodsId,siteNo,user.getId(),uuid,1)) {
             Result success = Result.success(0);
             success.setMsg(uuid);
             return success;

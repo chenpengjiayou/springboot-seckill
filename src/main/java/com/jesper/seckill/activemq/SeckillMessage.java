@@ -1,7 +1,7 @@
-package com.jesper.seckill.rabbitmq;
+package com.jesper.seckill.activemq;
 
 /**
- * Created by jiangyunxiong on 2018/5/29.
+ *
  *
  * 消息体
  */

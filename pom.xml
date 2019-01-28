@@ -5,7 +5,10 @@
 	<groupId>com.jesper</groupId>
 	<artifactId>jesper_seckill</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>jar</packaging>
+    <modules>
+        <module>../jmstest</module>
+    </modules>
+    <packaging>pom</packaging>
 
 	<parent>
 		<groupId>org.springframework.boot</groupId>

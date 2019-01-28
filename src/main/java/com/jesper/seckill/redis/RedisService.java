@@ -19,6 +19,14 @@ public class RedisService {
     @Autowired
     JedisPool jedisPool;
 
+    public JedisPool getJedisPool() {
+        return jedisPool;
+    }
+
+    public void setJedisPool(JedisPool jedisPool) {
+        this.jedisPool = jedisPool;
+    }
+
     /**
      * 从redis连接池获取redis实例
      */

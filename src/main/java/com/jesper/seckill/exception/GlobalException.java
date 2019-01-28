@@ -3,7 +3,7 @@ package com.jesper.seckill.exception;
 import com.jesper.seckill.result.CodeMsg;
 
 /**
- * Created by jiangyunxiong on 2018/5/22.
+ *
  * <p>
  * 自定义全局异常类
  */

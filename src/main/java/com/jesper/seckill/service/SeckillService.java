@@ -1,7 +1,7 @@
 package com.jesper.seckill.service;
 
-import com.jesper.seckill.rabbitmq.MQSender;
-import com.jesper.seckill.rabbitmq.SeckillMessage;
+import com.jesper.seckill.activemq.QueueSender;
+import com.jesper.seckill.activemq.SeckillMessage;
 import com.jesper.seckill.redis.RedisService;
 import com.jesper.seckill.redis.SeckillKey;
 import com.jesper.seckill.redis.dto.SeckillStockDetail;
@@ -13,10 +13,9 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
- * Created by jiangyunxiong on 2018/5/23.
+ *
  */
 @Service
 public class SeckillService {
@@ -24,7 +23,7 @@ public class SeckillService {
     @Autowired
     RedisService redisService;
     @Autowired
-    MQSender sender;
+    QueueSender queueSender;
     @Autowired
     JedisPool jedisPool;
     public void prepare(String fieldId,String goodsId,String siteNo){
@@ -46,14 +45,20 @@ public class SeckillService {
         }
 
 
-    public boolean seckill(String fieldId,long goodsId,String siteNo,Long userId,String uuid){
+    public boolean seckill(String fieldId,long goodsId,String siteNo,Long userId,String uuid,Integer seckillNum){
         String seckillKey = RedisKeyUtil.combineSeckillKey(fieldId,String.valueOf(goodsId),siteNo);
 
-
-        //预减库存
-        long stock = redisService.decr(SeckillKey.seckillStock, seckillKey);//10
+        seckillNum = seckillNum==null?1:seckillNum;
+        //decr扣减库存（每次只能秒杀一个）
+        /*long stock = redisService.decr(SeckillKey.seckillStock, seckillKey);//10
         if (stock < 0) {
             return false;
+        }*/
+        //watch扣减库存（支持设置秒杀数量）
+        seckillKey = SeckillKey.seckillStock.getPrefix()+seckillKey;
+        boolean result = seckillWatch(seckillKey,seckillNum);
+        if(!result) {
+            return result;
         }
         //判断重复秒杀
         /*SeckillOrder order = orderService.getOrderByUserIdGoodsId(user.getId(), goodsId);
@@ -65,43 +70,34 @@ public class SeckillService {
         message.setUserId(userId);
         message.setGoodsId(goodsId);
         message.setFieldId(fieldId);
-        message.setNumber(1);
+        message.setNumber(seckillNum);
         message.setSiteNo(siteNo);
         message.setId(uuid);
-        sender.sendSeckillMessage(message);
+        queueSender.sendSeckillMessage(message);
         return true;
     }
-    public  boolean seckillWatch(){
+    public  boolean seckillWatch(String key,Integer seckillNum){
         Jedis jedis = null;
         try {
 
-            jedis = jedisPool.getResource();
-
-            String key_s = "user_name";// 抢到的用户
-            String key = "test_count";// 商品数量
-            String clientName = UUID.randomUUID().toString().replace("-", "");// 用户名字
+            jedis = redisService.getJedisPool().getResource();
 
             while (true) {
                 try {
                     jedis.watch(key);// key加上乐观锁
-                    System.out.println("用户:" + clientName + "开始抢商品");
                     System.out.println("当前商品的个数：" + jedis.get(key));
                     int prdNum = Integer.parseInt(jedis.get(key));// 当前商品个数
-                    int seckillNum = 5;
                     if (prdNum > 0 && (prdNum-seckillNum)>=0) {
 
                         Transaction transaction = jedis.multi();// 标记一个事务块的开始
                         transaction.set(key, String.valueOf(prdNum - seckillNum));
                         List<Object> result = transaction.exec();// 原子性提交事物
-                        if (result == null || result.isEmpty()) {
-                            System.out.println("用户:" + clientName + "没有抢到商品");// 可能是watch-key被外部修改，或者是数据操作被驳回
-                        } else {
-                            jedis.sadd(key_s, clientName);// 将抢到的用户存起来
-                            System.out.println("用户:" + clientName + "抢到商品");
-                           return true;
+                        if (result != null && !result.isEmpty()) {
+                            System.out.println("用户:抢到商品");
+                            return true;
                         }
                     } else {
-                        System.out.println("库存为0，用户:" + clientName + "没有抢到商品");
+                        System.out.println("库存为0，用户没有抢到商品");
                         return false;
                     }
                 } catch (Exception e) {

@@ -2,7 +2,11 @@ package com.example.demo;
 
 import com.jesper.seckill.MainApplication;
 import com.jesper.seckill.controller.SeckillController;
+import com.jesper.seckill.activemq.SeckillMessage;
+import com.jesper.seckill.redis.RedisService;
+import com.jesper.seckill.redis.SeckillKey;
 import com.jesper.seckill.service.SeckillService;
+import com.jesper.seckill.util.RedisKeyUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,6 +24,8 @@ import java.util.concurrent.CountDownLatch;
 public class DemoApplicationTests {
 	@Autowired
 	SeckillService seckillService;
+	@Autowired
+	RedisService redisService;
 	/**
 	 * 并发量
 	 */
@@ -27,7 +33,7 @@ public class DemoApplicationTests {
 
 	//销售量
 
-	private int goodSale = 0;
+	private int goodSale;
 
 	//买成功的数量
 	private int accountNum = 0;
@@ -59,11 +65,18 @@ public class DemoApplicationTests {
 
 		System.out.println("end endDownLatch ");
 		System.out.println("-----------购买成功的用户数量----------为" + accountNum);
-		System.out.println("-----------销售量--------------------为" + goodSale);
-
-		System.out.println(successUsers);
+		String seckillKey = RedisKeyUtil.combineSeckillKey(SeckillController.fieldId,String.valueOf(SeckillController.goodsId),SeckillController.siteNo);
 		//等待消息队列执行完成
 		Thread.sleep(5000);
+		List<SeckillMessage> records = redisService.getJsonList(SeckillKey.seckillRecord,seckillKey, SeckillMessage.class);
+		int sum = 0;
+		for(SeckillMessage record:records) {
+			sum = sum+record.getNumber();
+		}
+		System.out.println("-----------销售量--------------------为" + sum);
+
+		System.out.println(successUsers);
+
 	}
 
 	private class UserRequest implements Runnable {
@@ -87,7 +100,8 @@ public class DemoApplicationTests {
 			}
 			//如果更新数据库成功，也就代表购买成功了
 			String uuid = UUID.randomUUID().toString();
-			if (seckillService.seckill(SeckillController.fieldId,goodsId,SeckillController.siteNo,userId,uuid)) {
+			int number = (int)(1+Math.random()*(10));
+			if (seckillService.seckill(SeckillController.fieldId,goodsId,SeckillController.siteNo,userId,uuid,number)) {
 				//对service加锁，因为很多线程在访问同一个service对象，不加锁将导致购买成功的人数少于预期，且数量不对，可自行测试
 				synchronized (UserRequest.class) {
 					//销售量
@@ -103,11 +117,14 @@ public class DemoApplicationTests {
 
 	@Test
 	public void testWatch() {
+		String key = "testWatch1";
+		redisService.set(SeckillKey.seckillStock,key,100);
 		try {
-			seckillService.seckillWatch();
+			seckillService.seckillWatch(SeckillKey.seckillStock.getPrefix() + key,2);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 }
+
 
